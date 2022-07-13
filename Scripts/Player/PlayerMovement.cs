@@ -8,11 +8,11 @@ public class PlayerMovement: MonoBehaviour
     [Header("IK")]
     [SerializeField]
     private RigController _headRig;
-    [SerializeField]
-    private Transform _targetTransform;
     [Tooltip("Maximum distance to target to disable IK")]
     [SerializeField]
     private float _maxDistanceToTarget = 5.0f;
+
+    private Transform _targetTransform;
 
     [Header("Movement")]
     [SerializeField]
@@ -21,9 +21,10 @@ public class PlayerMovement: MonoBehaviour
     private float _runningSpeed = 12.0f;
 
     
-    private float _forwardSpeed = 0.0f; // varies from 0 to 1
+    private float _forwardSpeed = 0.0f; // varies from -1 to 1
     private float _lateralSpeed = 0.0f; // varies from -1 to 1
 
+    private PlayerBrain _brain;
     private WeaponManager _weaponManager;
 
     public float ForwardSpeed => _forwardSpeed;
@@ -32,16 +33,23 @@ public class PlayerMovement: MonoBehaviour
     private bool _running;
     private bool _aiming;
 
+    private bool _allowedToThrow;
+
     private CameraController _playerCamera;
     private Animator _animator;
 
-    private void Awake()
+    public void Initialize(Transform targetTransform)
     {
         _playerCamera = Camera.main.GetComponent<CameraController>();
+        _brain = GetComponent<PlayerBrain>();
         _animator = transform.GetChild(0).GetComponent<Animator>();
         _weaponManager = GetComponent<WeaponManager>();
         _running = false;
         _aiming = false;
+
+        _allowedToThrow = true;
+
+        _targetTransform = targetTransform;
     }
 
     public void UpdateMovement()
@@ -72,10 +80,15 @@ public class PlayerMovement: MonoBehaviour
                 _weaponManager.Shoot();
         }
 
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            _brain.OpenMenu();
+        }
+
         ChangePositionOnInput();
         IKAndAnimation();
 
-        _targetTransform.position = transform.position + _playerCamera.transform.forward * (_maxDistanceToTarget-2) + new Vector3(0, 1.5f, 0);
+        _targetTransform.position = Camera.main.ScreenToWorldPoint(new Vector2(Screen.width / 2, Screen.height / 2)) + _playerCamera.transform.forward * 50.0f;
     }
 
     private void ChangePositionOnInput()
@@ -89,6 +102,13 @@ public class PlayerMovement: MonoBehaviour
         {
             _running = false;
             _playerCamera.StopRunning();
+        }
+        else if (Input.GetKeyDown(KeyCode.C) && _allowedToThrow)
+        {
+            _animator.SetTrigger("throw");
+            _allowedToThrow = false;
+
+            Invoke("ResetThrow", 5.0f);
         }
 
         float horizontal = Input.GetAxis("Horizontal");
@@ -114,8 +134,6 @@ public class PlayerMovement: MonoBehaviour
 
         if (vertical >= 0.0f) transform.Translate(movementVector * ((_running && !_aiming) ? _runningSpeed : _walkingSpeed) * Time.deltaTime);
         else transform.Translate(movementVector * ((_running && !_aiming) ? _runningSpeed : _walkingSpeed) * Time.deltaTime / 2);
-
-
     }
 
     private void IKAndAnimation()
@@ -135,4 +153,8 @@ public class PlayerMovement: MonoBehaviour
         _animator.SetFloat("lateralSpeed", _lateralSpeed);
     }
 
+    private void ResetThrow()
+    {
+        _allowedToThrow = true;
+    }
 }

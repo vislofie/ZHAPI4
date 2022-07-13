@@ -5,7 +5,7 @@ using System.IO;
 public static class ReverseAnimationContext
 {
 
-    [MenuItem("Assets/Create Reversed Clip", false, 14)]
+    /*[MenuItem("Assets/Create Reversed Clip", false, 14)]
     private static void ReverseClip()
     {
         string directoryPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(Selection.activeObject));
@@ -69,6 +69,6 @@ public static class ReverseAnimationContext
             return clips[0] as AnimationClip;
         }
         return null;
-    }
+    }*/
 
 }

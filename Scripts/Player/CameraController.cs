@@ -63,32 +63,38 @@ public class CameraController : MonoBehaviour
 
     private float _bobTime = 0.0f;
 
+    private bool _blockedMovement;
+
     private bool _running = false;
     private bool _bobFinished = false;
 
     private void Awake()
     {
-        Cursor.lockState = CursorLockMode.Locked;
         _target = GameObject.FindGameObjectWithTag("Player").transform;
     }
 
     private void Start()
     {
         AimMode(false);
+        _blockedMovement = true;
+        _target.GetComponent<PlayerBrain>().BlockMovement();
     }
 
     private void Update()
     {
-        OrbitCamera();
+        if (!_blockedMovement)
+        {
+            OrbitCamera();
 
-        if (_running)
-            CameraBob();
-        else if (!_running && !_bobFinished)
-            FinishBob();
+            if (_running)
+                CameraBob();
+            else if (!_running && !_bobFinished)
+                FinishBob();
 
-        MoveByCollision();
+            MoveByCollision();
 
-        ApplyPosChange();
+            ApplyPosChange();
+        }
     }
 
     public void StartRunning()
@@ -129,7 +135,7 @@ public class CameraController : MonoBehaviour
         float mouseY = Input.GetAxis("Mouse Y") * _mouseSensitivity;
 
         _rotationY += mouseX;
-        _rotationX += mouseY;
+        _rotationX -= mouseY;
 
         // Apply clamping for x rotation 
         _rotationX = Mathf.Clamp(_rotationX, _rotationXMinMax.x, _rotationXMinMax.y);
@@ -142,7 +148,6 @@ public class CameraController : MonoBehaviour
 
         // Substract forward vector of the GameObject to point its forward vector to the target
         _currentPosition = _target.position - transform.forward * _distanceFromTarget;
-        //_currentPosition = Vector3.Lerp(_currentPosition, _target.position - transform.forward * _distanceFromTarget, 15 * Time.deltaTime);
     }
 
     /// <summary>
@@ -162,11 +167,9 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void ApplyPosChange()
     {
-        
         Vector3 aimOffset = Vector3.Cross(-transform.forward, transform.up) * _offset.z;
         Vector3 topOffset = Vector3.Cross(transform.forward, transform.right) * _offset.y;
         transform.position = _currentPosition + aimOffset + topOffset;
-        //transform.position = Vector3.Lerp(transform.position, _currentPosition + _offset, 15 * Time.deltaTime);
     }
 
     /// <summary>
@@ -184,16 +187,39 @@ public class CameraController : MonoBehaviour
     /// </summary>
     private void FinishBob()
     {
-        Vector3 additiveBob = new Vector3(0.0f, Mathf.Sin(_bobTime * _bobFrequency) * _bobAmplitude, 0.0f);
-        if (Mathf.Abs(additiveBob.y) <= _bobAmplitude / 100.0f)
-        {
-            _bobFinished = true;
-            _bobTime = 0.0f;
-        }
-        else
-        {
-            _currentPosition += additiveBob;
-            _bobTime += Time.deltaTime;
-        }
+        _bobFinished = true;
+        _bobTime = 0.0f;
+    }
+    public void PreStopCutscene()
+    {
+        _target.GetComponent<PlayerBrain>().PreCutsceneEnd();
+    }
+
+    public void StopCutscene()
+    {
+        GetComponent<Animation>().enabled = false;
+        _blockedMovement = false;
+
+        _target.GetComponent<PlayerBrain>().CutsceneEnd();
+
+        _currentRotation = transform.rotation.eulerAngles;
+
+        _rotationY = transform.rotation.eulerAngles.y;
+        _rotationX = transform.rotation.eulerAngles.x;
+    }
+
+    public void SetSensitivity(float value)
+    {
+        _mouseSensitivity = value;
+    }
+
+    public void BlockMovement()
+    {
+        _blockedMovement = true;
+    }
+
+    public void AllowMovement()
+    {
+        _blockedMovement = false;
     }
 }

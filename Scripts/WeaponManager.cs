@@ -7,11 +7,24 @@ public class WeaponManager : MonoBehaviour
 {
     [Header("Set up")]
     [SerializeField]
-    private Transform _revolver;
-    private Animator _revolverAnimator;
+    protected Transform _revolver;
+    [SerializeField]
+    protected float _shootDistance = 15.0f;
+    [SerializeField]
+    protected LayerMask _shootLayerMask;
+    protected Animator _revolverAnimator;
+
+    protected Transform _targetTransform;
+
+    protected bool _initialized;
+
+    protected bool _hitTheHitbox;
+    protected RaycastHit _hitbox;
 
     [SerializeField]
     private RigController _weaponRig;
+    [SerializeField]
+    private RigBuilder _rigBuilder;
 
     [Header("")]
     [Tooltip("Transform of a hand that is holding the gun")]
@@ -26,15 +39,20 @@ public class WeaponManager : MonoBehaviour
     [SerializeField]
     private Transform _drawnTransform;
 
-
-
     private bool _drawn;
     public bool Drawn => _drawn;
 
     private bool _hammered;
 
-    private void Start()
+    protected bool _player;
+    public bool Player => _player;  
+
+    public void Initialize(Transform targetTransform)
     {
+        _initialized = true;
+
+        _targetTransform = targetTransform;
+
         _revolverAnimator = _revolver.GetComponent<Animator>();
         _hammered = false;
     }
@@ -46,8 +64,7 @@ public class WeaponManager : MonoBehaviour
     {
         Debug.Log("Draw");
         _drawn = true;
-        _weaponRig.EnableRig(false);
-        //_revolver.position = _drawnTransform.position;
+        _weaponRig.EnableRig(false, _rigBuilder);
     }
 
     /// <summary>
@@ -57,8 +74,7 @@ public class WeaponManager : MonoBehaviour
     {
         Debug.Log("Sheath");
         _drawn = false;
-        _weaponRig.DisableRig(false);
-        //_revolver.position = _sheathTransform.position;
+        _weaponRig.DisableRig(false, _rigBuilder);
     }
 
     /// <summary>
@@ -103,11 +119,36 @@ public class WeaponManager : MonoBehaviour
             }
             else
             {
+                _hitbox = new RaycastHit();
+
                 _revolverAnimator.SetTrigger("Shot2");
                 _hammered = false;
             }
         }
     }
 
-    
+    public void RegisterHittingHitbox()
+    {
+        if (_hitTheHitbox && _hitbox.collider != null)
+        {
+            if (_hitbox.collider.TryGetComponent(out Prop prop))
+            {
+                prop.PlayRicochetSound();
+                return;
+            }
+
+            if (_player)
+            {
+                if (_hitbox.collider.TryGetComponent(out EnemyHitbox hitbox))
+                    _hitbox.collider.GetComponent<EnemyHitbox>().GotShot(_revolver.position);
+            }
+            else
+            {
+                if (_hitbox.collider.TryGetComponent(out PlayerHitbox hitbox))
+                    _hitbox.collider.GetComponent<PlayerHitbox>().GotShot(_revolver.position);
+            }
+        }
+    }
+
+
 }

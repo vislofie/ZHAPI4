@@ -35,4 +35,14 @@ public class AnimationEventHandler : MonoBehaviour
     {
         _weaponManager.PutInHand();
     }
+
+    public void GetDynamiteInHand()
+    {
+        _weaponManager.GetComponent<PlayerWeaponManager>().GetDynamiteInHand();
+    }
+
+    public void ThrowDynamite()
+    {
+        _weaponManager.GetComponent<PlayerWeaponManager>().ThrowDynamite();
+    }
 }
